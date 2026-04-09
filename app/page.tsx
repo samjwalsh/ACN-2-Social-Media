@@ -25,6 +25,7 @@ async function parseResponse(response: Response) {
 }
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
@@ -119,6 +120,7 @@ export default function Home() {
   }
 
   useEffect(() => {
+    setIsMounted(true);
     const storedToken = window.sessionStorage.getItem(SESSION_KEY);
     if (!storedToken) {
       return;
@@ -144,6 +146,28 @@ export default function Home() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshCoreData(selectedGroupId || undefined);
+    }, 2500);
+
+    const onFocus = () => {
+      void refreshCoreData(selectedGroupId || undefined);
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, selectedGroupId]);
 
   async function onRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -296,6 +320,17 @@ export default function Home() {
         error instanceof Error ? error.message : "Failed to fetch messages",
       );
     }
+  }
+
+  if (!isMounted) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4 text-sm">
+        <h1 className="text-xl font-semibold">
+          ACN-2 Secure Social Media Demo
+        </h1>
+        <p className="text-muted-foreground">Loading app...</p>
+      </main>
+    );
   }
 
   return (
